@@ -213,3 +213,39 @@ class LogFn(GradFunction):
     def backward(self, grad):
         assert grad.shape == self.data_shape
         self.v.backward(grad / self.v_data)
+
+
+class SigmoidFn(GradFunction):
+
+    def forward(self, v):
+        self.v = v
+        data = 1 / (1 + np.exp(-v.data))
+        self.data = data # backup
+        self.data_shape = data.shape
+        requires_grad = v.requires_grad
+        return stensor.create_intermediate(data, requires_grad=requires_grad, grad_fn=self)
+
+    def backward(self, grad):
+        assert grad.shape == self.data_shape
+        self.v.backward(grad * self.data * (1 - self.data))
+
+
+class MSELossFn(GradFunction):
+
+    def forward(self, v1, v2):
+        self.v1, self.v2 = v1, v2
+        assert v1.data.shape == v2.data.shape
+        self.data = v1.data - v2.data
+        self.data_shape = self.data.shape
+        data = (self.data ** 2).sum()
+        requires_grad = v1.requires_grad | v2.requires_grad
+        return stensor.create_intermediate(data, requires_grad=requires_grad, grad_fn=self)
+
+    def backward(self, grad):
+        assert grad.shape == ()
+        if self.v1.requires_grad or self.v2.requires_grad:
+            grad = grad * self.data
+            if self.v1.requires_grad:
+                self.v1.backward(grad)
+            if self.v2.requires_grad:
+                self.v2.backward(-grad)

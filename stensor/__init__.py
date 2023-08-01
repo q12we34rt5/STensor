@@ -5,6 +5,9 @@ from stensor.tensor import (
 )
 from stensor.modules import (
     Module,
+    Linear,
+    Sigmoid,
+    MSELoss,
 )
 from stensor.optimizers import (
     Optimizer,

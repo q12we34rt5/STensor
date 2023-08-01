@@ -1,5 +1,8 @@
 import abc
 from collections import OrderedDict
+import numpy as np
+import stensor
+import stensor.grad_functions as GF
 
 
 class Module(abc.ABC):
@@ -50,3 +53,32 @@ class Module(abc.ABC):
     @abc.abstractmethod
     def forward(self, *input):
         pass
+
+
+class Linear(Module):
+
+    def __init__(self, in_features, out_features):
+        super(self.__class__, self).__init__()
+        self.in_features, self.out_features = in_features, out_features
+
+        self._parameters['weight'] = stensor.create(np.random.randn(in_features, out_features), requires_grad=True)
+        self._parameters['bias']   = stensor.create(np.random.randn(out_features), requires_grad=True)
+
+    def extra_repr(self):
+        return f'in_features={self.in_features}, out_features={self.out_features}'
+
+    def forward(self, x):
+        weight, bias = self._parameters['weight'], self._parameters['bias']
+        return x @ weight + bias
+
+
+class Sigmoid(Module):
+
+    def forward(self, x):
+        return GF.SigmoidFn().forward(x)
+
+
+class MSELoss(Module):
+
+    def forward(self, input, target):
+        return GF.MSELossFn().forward(input, target)
