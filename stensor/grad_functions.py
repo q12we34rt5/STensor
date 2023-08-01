@@ -119,6 +119,72 @@ class NegFn(GradFunction):
         self.v.backward(-grad)
 
 
+class MatmulFn(GradFunction):
+
+    def forward(self, v1, v2):
+        self.v1, self.v2 = v1, v2
+
+        self.v1_data = (v1.data[None]   if v1.data.ndim == 1 else v1.data).copy()
+        self.v2_data = (v2.data[None].T if v2.data.ndim == 1 else v2.data).copy()
+
+        data = self.v1_data @ self.v2_data
+
+        self.data_shape = data.shape
+        requires_grad = v1.requires_grad | v2.requires_grad
+        return stensor.create_intermediate(data, requires_grad=requires_grad, grad_fn=self)
+
+    def backward(self, grad):
+        assert grad.shape == self.data_shape
+        if self.v1.requires_grad:
+            v1_grad = reduce_dim(grad @ np.moveaxis(self.v2_data, -1, -2), self.v1_data.shape)
+            if self.v1.data.ndim == 1:
+                v1_grad = v1_grad[0]
+            self.v1.backward(v1_grad)
+
+        if self.v2.requires_grad:
+            v2_grad = reduce_dim(np.moveaxis(self.v1_data, -1, -2) @ grad, self.v2_data.shape)
+            if self.v2.data.ndim == 1:
+                v2_grad = v2_grad.T[0]
+            self.v2.backward(v2_grad)
+
+
+class SumFn(GradFunction):
+
+    def forward(self, v, axis=None, keepdims=False):
+        self.v = v
+        data = v.data.sum(axis=axis, keepdims=True)
+        self.data_shape = data.shape
+        if not keepdims:
+            data = data.squeeze()
+        requires_grad = v.requires_grad
+        return stensor.create_intermediate(data, requires_grad=requires_grad, grad_fn=self)
+
+    def backward(self, grad):
+        # assert grad.shape == self.data_shape
+        grad = grad.reshape(self.data_shape)
+        self.v.backward(grad * np.ones_like(self.v.data))
+
+
+class MeanFn(GradFunction):
+
+    def forward(self, v, axis=None, keepdims=False):
+        self.v = v
+        data = v.data.mean(axis=axis, keepdims=True)
+        self.data_shape = data.shape
+        if not keepdims:
+            data = data.squeeze()
+        requires_grad = v.requires_grad
+        return stensor.create_intermediate(data, requires_grad=requires_grad, grad_fn=self)
+
+    def backward(self, grad):
+        import functools
+        # assert grad.shape == self.data_shape
+        # reduced_size = np.prod(self.v.data.shape) / np.prod(self.data_shape)
+        reduced_size = functools.reduce(lambda x, y: x * y, self.v.data.shape) / functools.reduce(lambda x, y: x * y, self.data_shape)
+        grad = grad.reshape(self.data_shape)
+        self.v.backward(grad * np.full(self.v.data.shape, 1 / reduced_size))
+
+
 class ExpFn(GradFunction):
 
     def forward(self, v):

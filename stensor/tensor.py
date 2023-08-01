@@ -91,6 +91,16 @@ class Tensor:
     def __neg__(self):
         return GF.NegFn().forward(self)
 
+    def __matmul__(self, v):
+        v = self._to_stensor(v, requires_grad=False)
+        return GF.MatmulFn().forward(self, v)
+
+    def sum(self, axis=None, keepdims=False):
+        return GF.SumFn().forward(self, axis=axis, keepdims=keepdims)
+
+    def mean(self, axis=None, keepdims=False):
+        return GF.MeanFn().forward(self, axis=axis, keepdims=keepdims)
+
     def exp(self):
         return GF.ExpFn().forward(self)
 
