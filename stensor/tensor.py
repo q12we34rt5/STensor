@@ -84,6 +84,19 @@ class Tensor:
         v = self._to_stensor(v, requires_grad=False)
         return GF.DivFn().forward(v, self)
 
+    def __pow__(self, v):
+        v = self._to_stensor(v, requires_grad=False)
+        return GF.PowFn().forward(self, v)
+
+    def __neg__(self):
+        return GF.NegFn().forward(self)
+
+    def exp(self):
+        return GF.ExpFn().forward(self)
+
+    def log(self):
+        return GF.LogFn().forward(self)
+
 
 def create_intermediate(data, requires_grad=False, grad_fn=None, **kwargs):
     return Tensor(data, requires_grad=requires_grad, is_leaf=False, grad_fn=grad_fn, **kwargs)
