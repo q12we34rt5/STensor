@@ -3,3 +3,8 @@ from stensor.tensor import (
     create,
     create_intermediate,
 )
+from stensor.optimizers import (
+    Optimizer,
+    SGD,
+    Adam,
+)
