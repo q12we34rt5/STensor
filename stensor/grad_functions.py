@@ -29,8 +29,10 @@ class AddFn(GradFunction):
 
     def backward(self, grad):
         assert grad.shape == self.data_shape
-        self.v1.backward(reduce_dim(grad, self.v1.data.shape))
-        self.v2.backward(reduce_dim(grad, self.v2.data.shape))
+        if self.v1.requires_grad:
+            self.v1.backward(reduce_dim(grad, self.v1.data.shape))
+        if self.v2.requires_grad:
+            self.v2.backward(reduce_dim(grad, self.v2.data.shape))
 
 
 class SubFn(GradFunction):
@@ -44,8 +46,10 @@ class SubFn(GradFunction):
 
     def backward(self, grad):
         assert grad.shape == self.data_shape
-        self.v1.backward(reduce_dim(grad, self.v1.data.shape))
-        self.v2.backward(reduce_dim(-grad, self.v2.data.shape))
+        if self.v1.requires_grad:
+            self.v1.backward(reduce_dim(grad, self.v1.data.shape))
+        if self.v2.requires_grad:
+            self.v2.backward(reduce_dim(-grad, self.v2.data.shape))
 
 
 class MulFn(GradFunction):
@@ -60,8 +64,10 @@ class MulFn(GradFunction):
 
     def backward(self, grad):
         assert grad.shape == self.data_shape
-        self.v1.backward(reduce_dim(grad * self.v2_data, self.v1.data.shape))
-        self.v2.backward(reduce_dim(grad * self.v1_data, self.v2.data.shape))
+        if self.v1.requires_grad:
+            self.v1.backward(reduce_dim(grad * self.v2_data, self.v1.data.shape))
+        if self.v2.requires_grad:
+            self.v2.backward(reduce_dim(grad * self.v1_data, self.v2.data.shape))
 
 
 class DivFn(GradFunction):
@@ -75,8 +81,11 @@ class DivFn(GradFunction):
 
     def backward(self, grad):
         assert grad.shape == self.data_shape
-        self.v1.backward(reduce_dim(grad / self.v2.data, self.v1.data.shape))
-        self.v2.backward(reduce_dim(-grad * self.v1.data / (self.v2.data ** 2), self.v2.data.shape))
+        if self.v1.requires_grad:
+            self.v1.backward(reduce_dim(grad / self.v2.data, self.v1.data.shape))
+        if self.v2.requires_grad:
+            self.v2.backward(reduce_dim(-grad * self.v1.data / (self.v2.data ** 2), self.v2.data.shape))
+
 
 class PowFn(GradFunction):
 
